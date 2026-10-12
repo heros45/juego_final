@@ -408,7 +408,7 @@ namespace ChronosEscape.EditorTools
             // Sala Sur (Portal de Escape) - Muro perimetral con vano central abierto de 5.6m para encajar la compuerta Sci-Fi
             CreateWall(wallsGroup.transform, new Vector3(-8.4f, 3, -53.5f), new Vector3(11.2f, 6, 1), matWall); // Muro sur izquierdo
             CreateWall(wallsGroup.transform, new Vector3(8.4f, 3, -53.5f), new Vector3(11.2f, 6, 1), matWall);  // Muro sur derecho
-            CreateWall(wallsGroup.transform, new Vector3(0, 5.2f, -53.5f), new Vector3(5.6f, 1.6f, 1), matWall);  // Dintel superior sobre la compuerta
+            CreateWall(wallsGroup.transform, new Vector3(0, 5.25f, -53.5f), new Vector3(5.6f, 1.5f, 1), matWall);  // Dintel superior ajustado exactamente sobre la compuerta
             CreateWall(wallsGroup.transform, new Vector3(-14.5f, 3, -44), new Vector3(1, 6, 18), matWall);
             CreateWall(wallsGroup.transform, new Vector3(14.5f, 3, -44), new Vector3(1, 6, 18), matWall);
 
@@ -866,8 +866,8 @@ namespace ChronosEscape.EditorTools
                 gatesInstance.name = "SciFiGates_BlastDoor";
                 gatesInstance.transform.SetParent(doorRoot.transform);
                 // Con rotación (0, -90, 0), el ancho (5.51m) queda paralelo al muro X y el frente mira hacia +Z (hacia el jugador)
-                // Offset x = -1.34f centra exactamente el marco de la compuerta en x = 0
-                gatesInstance.transform.localPosition = new Vector3(-1.34f, 0, 0);
+                // Offset x = -1.34f centra el marco en x = 0, y offset y = 2.17f eleva la compuerta para que su base descanse sobre el suelo
+                gatesInstance.transform.localPosition = new Vector3(-1.34f, 2.17f, 0);
                 gatesInstance.transform.localRotation = Quaternion.Euler(0, -90f, 0);
                 gatesInstance.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
 
@@ -879,13 +879,13 @@ namespace ChronosEscape.EditorTools
                 {
                     BoxCollider bcL = pLeft.gameObject.AddComponent<BoxCollider>();
                     bcL.size = new Vector3(0.5f, 3.2f, 2.2f);
-                    bcL.center = new Vector3(0f, 1.5f, 0.9f);
+                    bcL.center = new Vector3(0f, 0f, 0.9f);
                 }
                 if (pRight != null && pRight.GetComponent<Collider>() == null)
                 {
                     BoxCollider bcR = pRight.gameObject.AddComponent<BoxCollider>();
                     bcR.size = new Vector3(0.5f, 3.2f, 2.2f);
-                    bcR.center = new Vector3(0f, 1.5f, -0.9f);
+                    bcR.center = new Vector3(0f, 0f, -0.9f);
                 }
                 Transform frame = gatesInstance.transform.Find("Frame");
                 if (frame != null && frame.GetComponent<Collider>() == null)
@@ -899,40 +899,40 @@ namespace ChronosEscape.EditorTools
             tunnelFloor.name = "EscapeTunnelFloor";
             tunnelFloor.transform.SetParent(doorRoot.transform);
             tunnelFloor.transform.localPosition = new Vector3(0, -0.4f, -4f);
-            tunnelFloor.transform.localScale = new Vector3(5.6f, 0.4f, 8f);
+            tunnelFloor.transform.localScale = new Vector3(5.6f, 0.8f, 8f);
             if (matAccent != null) tunnelFloor.GetComponent<Renderer>().material = matAccent;
 
             GameObject tunnelCeiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tunnelCeiling.name = "EscapeTunnelCeiling";
             tunnelCeiling.transform.SetParent(doorRoot.transform);
-            tunnelCeiling.transform.localPosition = new Vector3(0, 5.4f, -4f);
+            tunnelCeiling.transform.localPosition = new Vector3(0, 4.4f, -4f);
             tunnelCeiling.transform.localScale = new Vector3(5.6f, 0.4f, 8f);
             if (matWall != null) tunnelCeiling.GetComponent<Renderer>().material = matWall;
 
             GameObject tunnelWallL = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tunnelWallL.name = "EscapeTunnelWall_L";
             tunnelWallL.transform.SetParent(doorRoot.transform);
-            tunnelWallL.transform.localPosition = new Vector3(-2.8f, 2.5f, -4f);
-            tunnelWallL.transform.localScale = new Vector3(0.5f, 6f, 8f);
+            tunnelWallL.transform.localPosition = new Vector3(-2.8f, 2.0f, -4f);
+            tunnelWallL.transform.localScale = new Vector3(0.5f, 4.8f, 8f);
             if (matWall != null) tunnelWallL.GetComponent<Renderer>().material = matWall;
 
             GameObject tunnelWallR = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tunnelWallR.name = "EscapeTunnelWall_R";
             tunnelWallR.transform.SetParent(doorRoot.transform);
-            tunnelWallR.transform.localPosition = new Vector3(2.8f, 2.5f, -4f);
-            tunnelWallR.transform.localScale = new Vector3(0.5f, 6f, 8f);
+            tunnelWallR.transform.localPosition = new Vector3(2.8f, 2.0f, -4f);
+            tunnelWallR.transform.localScale = new Vector3(0.5f, 4.8f, 8f);
             if (matWall != null) tunnelWallR.GetComponent<Renderer>().material = matWall;
 
             GameObject tunnelBackWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tunnelBackWall.name = "EscapeTunnelBackWall";
             tunnelBackWall.transform.SetParent(doorRoot.transform);
-            tunnelBackWall.transform.localPosition = new Vector3(0, 2.5f, -8f);
-            tunnelBackWall.transform.localScale = new Vector3(6f, 6f, 0.5f);
+            tunnelBackWall.transform.localPosition = new Vector3(0, 2.0f, -8f);
+            tunnelBackWall.transform.localScale = new Vector3(6f, 4.8f, 0.5f);
             if (matWall != null) tunnelBackWall.GetComponent<Renderer>().material = matWall;
 
             GameObject tunnelLight = new GameObject("EscapeTunnelLight");
             tunnelLight.transform.SetParent(doorRoot.transform);
-            tunnelLight.transform.localPosition = new Vector3(0, 3f, -4f);
+            tunnelLight.transform.localPosition = new Vector3(0, 2.5f, -4f);
             Light tLight = tunnelLight.AddComponent<Light>();
             tLight.type = LightType.Point;
             tLight.color = new Color(0.2f, 1f, 0.6f);

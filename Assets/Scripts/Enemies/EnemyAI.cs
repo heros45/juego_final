@@ -56,6 +56,7 @@ namespace ChronosEscape.Enemies
         [Header("Feedback Visual y Luces")]
         [SerializeField] private Light luzOjo;
         [SerializeField] private Renderer renderModelo;
+        [SerializeField] private Renderer renderOjoLente;
         [SerializeField] private Color colorPatrulla = new Color(0f, 0.8f, 1f);  // Cian
         [SerializeField] private Color colorAlerta = new Color(1f, 0.1f, 0.1f);   // Rojo alerta
 
@@ -100,10 +101,11 @@ namespace ChronosEscape.Enemies
             characterController.stepOffset = 0.3f;
         }
 
-        public void ConfigurarReferencias(Light luz, Renderer modelo)
+        public void ConfigurarReferencias(Light luz, Renderer modelo, Renderer lenteCentral = null)
         {
             luzOjo = luz;
             renderModelo = modelo;
+            renderOjoLente = lenteCentral;
         }
 
         public void AsignarWaypoints(Transform[] puntos)
@@ -523,6 +525,18 @@ namespace ChronosEscape.Enemies
         private void ActualizarColorVisual(Color color)
         {
             if (luzOjo != null) luzOjo.color = color;
+
+            // Iluminar nítidamente el círculo / lente central del dron como fuente de emisión
+            if (renderOjoLente != null && renderOjoLente.material != null)
+            {
+                renderOjoLente.material.color = color;
+                if (renderOjoLente.material.HasProperty("_EmissionColor"))
+                {
+                    renderOjoLente.material.EnableKeyword("_EMISSION");
+                    renderOjoLente.material.SetColor("_EmissionColor", color * 3.5f);
+                }
+            }
+
             if (renderModelo != null && renderModelo.material != null)
             {
                 if (renderModelo.material.HasProperty("_EmissionColor"))

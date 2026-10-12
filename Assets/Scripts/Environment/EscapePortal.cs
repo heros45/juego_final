@@ -137,19 +137,20 @@ namespace ChronosEscape.Environment
                 }
             }
 
-            // Botón de pared en rojo bloqueado
+            // Botón de pared en rojo sólido bloqueado
             if (renderBotonPared != null && renderBotonPared.material != null)
             {
                 renderBotonPared.material.color = colorBloqueado;
                 if (renderBotonPared.material.HasProperty("_EmissionColor"))
                 {
-                    renderBotonPared.material.SetColor("_EmissionColor", colorBloqueado * 1.5f);
+                    renderBotonPared.material.SetColor("_EmissionColor", colorBloqueado * 0.35f);
                 }
             }
             if (luzBotonPared != null)
             {
                 luzBotonPared.color = colorBloqueado;
-                luzBotonPared.intensity = 1.5f;
+                luzBotonPared.intensity = 0.85f;
+                luzBotonPared.range = 3.5f;
             }
         }
 
@@ -198,14 +199,14 @@ namespace ChronosEscape.Environment
                 renderBotonPared.material.color = colorActivado;
                 if (renderBotonPared.material.HasProperty("_EmissionColor"))
                 {
-                    renderBotonPared.material.SetColor("_EmissionColor", colorActivado * 3.5f);
+                    renderBotonPared.material.SetColor("_EmissionColor", colorActivado * 2.0f);
                 }
             }
             if (luzBotonPared != null)
             {
                 luzBotonPared.color = colorActivado;
-                luzBotonPared.intensity = 4.0f;
-                luzBotonPared.range = 7f;
+                luzBotonPared.intensity = 2.2f;
+                luzBotonPared.range = 5f;
             }
 
             if (AudioManager.Instance != null)

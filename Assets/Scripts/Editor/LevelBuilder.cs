@@ -40,7 +40,7 @@ namespace ChronosEscape.EditorTools
             Material matAccent = CreateMaterial("Assets/Materials/Mat_Accent.mat", new Color(0.0f, 0.8f, 0.9f), 0.8f, 0.8f, new Color(0.0f, 0.7f, 0.85f) * 1.5f);
             Material matCore = CreateMaterial("Assets/Materials/Mat_Core.mat", new Color(1.0f, 0.8f, 0.1f), 0.8f, 0.9f, new Color(1.0f, 0.75f, 0.05f) * 2.5f);
             Material matEnemy = CreateMaterial("Assets/Materials/Mat_Enemy.mat", new Color(0.85f, 0.15f, 0.15f), 0.5f, 0.6f, new Color(1.0f, 0.1f, 0.1f) * 1.8f);
-            Material matPortalLocked = CreateMaterial("Assets/Materials/Mat_PortalLocked.mat", new Color(0.8f, 0.2f, 0.2f), 0.4f, 0.7f, new Color(0.8f, 0.1f, 0.1f) * 0.8f);
+            Material matPortalLocked = CreateMaterial("Assets/Materials/Mat_PortalLocked.mat", new Color(0.92f, 0.08f, 0.08f), 0.15f, 0.35f, new Color(0.4f, 0.02f, 0.02f));
             Material matRamp = CreateMaterial("Assets/Materials/Mat_Ramp.mat", new Color(0.15f, 0.17f, 0.22f), 0.3f, 0.3f);
             Material matCeiling = CreateMaterial("Assets/Materials/Mat_Ceiling.mat", new Color(0.14f, 0.16f, 0.20f), 0.6f, 0.35f);
 
@@ -102,7 +102,7 @@ namespace ChronosEscape.EditorTools
             evacManagerObj.AddComponent<ChronosEscape.Environment.EvacuationLightingManager>();
 
             // 7. Instanciar Mecanismo de Escape: Compuerta de Evacuación + Botón de Pared en Cámara Sur
-            GameObject portalObj = CreatePortalMechanism(new Vector3(0, 0.5f, -44), matPortalLocked, matAccent, matWall);
+            GameObject portalObj = CreatePortalMechanism(new Vector3(0, 0.5f, -44), matPortalLocked, matAccent, matWall, matPillar);
 
             // 8. Instanciar Núcleos de Energía (Distribuidos equitativamente en cada ala accesible)
             List<GameObject> cores = new List<GameObject>();
@@ -114,24 +114,24 @@ namespace ChronosEscape.EditorTools
 
             // 9. Instanciar Enemigos Centinela con IA y Waypoints (Exactamente 2 NPCs funcionales y estables)
             CreateSentinelEnemy(
-                new Vector3(0, 1.1f, 40),
+                new Vector3(0, 1.35f, 40),
                 new Vector3[] { 
-                    new Vector3(-6, 1.1f, 44), 
-                    new Vector3(6, 1.1f, 44), 
-                    new Vector3(6, 1.1f, 38), 
-                    new Vector3(-6, 1.1f, 38) 
+                    new Vector3(-6, 1.35f, 44), 
+                    new Vector3(6, 1.35f, 44), 
+                    new Vector3(6, 1.35f, 38), 
+                    new Vector3(-6, 1.35f, 38) 
                 },
                 matEnemy,
                 "Sentinel_North"
             );
 
             CreateSentinelEnemy(
-                new Vector3(0, 1.1f, 6),
+                new Vector3(0, 1.35f, 6),
                 new Vector3[] { 
-                    new Vector3(6, 1.1f, 6), 
-                    new Vector3(6, 1.1f, -6), 
-                    new Vector3(-6, 1.1f, -6), 
-                    new Vector3(-6, 1.1f, 6) 
+                    new Vector3(6, 1.35f, 6), 
+                    new Vector3(6, 1.35f, -6), 
+                    new Vector3(-6, 1.35f, -6), 
+                    new Vector3(-6, 1.35f, 6) 
                 },
                 matEnemy,
                 "Sentinel_CentralPatrol"
@@ -245,6 +245,111 @@ namespace ChronosEscape.EditorTools
             {
                 mat.EnableKeyword("_EMISSION");
                 mat.SetColor("_EmissionColor", color * 2.5f);
+            }
+
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        private static Texture2D GetOrCreateSoftParticleTexture()
+        {
+            string path = "Assets/Materials/T_SoftParticle.png";
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (tex != null) return tex;
+
+            int size = 64;
+            Texture2D newTex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            float center = (size - 1) / 2f;
+            float maxDist = size / 2f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                    float norm = Mathf.Clamp01(dist / maxDist);
+                    float alpha = Mathf.SmoothStep(1f, 0f, norm);
+                    alpha = alpha * alpha; // Caída exponencial cuadrática súper suave
+                    newTex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+            newTex.Apply();
+
+            byte[] pngBytes = newTex.EncodeToPNG();
+            string fullPath = Application.dataPath + "/Materials/T_SoftParticle.png";
+            System.IO.File.WriteAllBytes(fullPath, pngBytes);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        private static Material GetOrCreateSoftDustMaterial()
+        {
+            string path = "Assets/Materials/Mat_SoftDust.mat";
+            Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null) return existing;
+
+            Shader shader = Shader.Find("Particles/Standard Unlit");
+            if (shader == null) shader = Shader.Find("Mobile/Particles/Additive");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            if (shader == null) shader = Shader.Find("Standard");
+
+            Material mat = new Material(shader);
+            mat.name = "Mat_SoftDust";
+            Texture2D softTex = GetOrCreateSoftParticleTexture();
+            if (softTex != null)
+            {
+                mat.mainTexture = softTex;
+            }
+            Color tint = new Color(0.5f, 0.8f, 1f, 0.15f);
+            mat.color = tint;
+            if (mat.HasProperty("_TintColor")) mat.SetColor("_TintColor", tint);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", tint);
+
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        private static Material GetOrCreateDroneMaterial()
+        {
+            string path = "Assets/Materials/Mat_Drone.mat";
+            Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null) return existing;
+
+            Shader standardShader = Shader.Find("Standard");
+            Material mat = new Material(standardShader);
+            mat.name = "Mat_Drone";
+
+            string normalPath = "Assets/drone/textures/drone_initialShadingGroup_Normal_1.png";
+            TextureImporter ti = AssetImporter.GetAtPath(normalPath) as TextureImporter;
+            if (ti != null && ti.textureType != TextureImporterType.NormalMap)
+            {
+                ti.textureType = TextureImporterType.NormalMap;
+                ti.SaveAndReimport();
+            }
+
+            Texture2D baseColor = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/drone/textures/drone_initialShadingGroup_BaseColor_2.png");
+            Texture2D normalMap = AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath);
+            Texture2D metallicMap = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/drone/textures/drone_initialShadingGroup_Metallic-drone_initialShadingGroup.png");
+            Texture2D emissiveMap = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/drone/textures/drone_initialShadingGroup_Emissive_0.png");
+
+            if (baseColor != null) mat.mainTexture = baseColor;
+            if (normalMap != null)
+            {
+                mat.SetTexture("_BumpMap", normalMap);
+                mat.EnableKeyword("_NORMALMAP");
+            }
+            if (metallicMap != null)
+            {
+                mat.SetTexture("_MetallicGlossMap", metallicMap);
+                mat.EnableKeyword("_METALLICGLOSSMAP");
+                mat.SetFloat("_Metallic", 1.0f);
+                mat.SetFloat("_Glossiness", 0.65f);
+            }
+            if (emissiveMap != null)
+            {
+                mat.SetTexture("_EmissionMap", emissiveMap);
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", new Color(0f, 0.8f, 1f) * 1.5f);
             }
 
             AssetDatabase.CreateAsset(mat, path);
@@ -431,11 +536,13 @@ namespace ChronosEscape.EditorTools
             // ==================== COBERTURAS TÁCTICAS: CAJAS Y CONTENEDORES MINIMAL SCIFI PACK ====================
             // Reemplazo total de cubos genéricos primitivos por las cajas 3D del Minimal Scifi Pack
             // 1. Hub Central
-            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(-3f, 0f, 2f), Quaternion.Euler(0, 15f, 0), "SM_Trim_L_Container1", new Vector3(1.1f, 1.1f, 1.1f));
-            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(-2.2f, 1.2f, 2f), Quaternion.Euler(0, -25f, 0), "SM_Box1", Vector3.one);
+            GameObject c1 = PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(-3f, 0f, 2f), Quaternion.Euler(0, 15f, 0), "SM_Trim_L_Container1", new Vector3(1.1f, 1.1f, 1.1f));
+            float topY1 = c1 != null && c1.GetComponentInChildren<Renderer>() != null ? c1.GetComponentInChildren<Renderer>().bounds.max.y : 1.5f;
+            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(-2.4f, topY1, 2f), Quaternion.Euler(0, -25f, 0), "SM_Box1", Vector3.one);
 
-            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(3f, 0f, -2f), Quaternion.Euler(0, -30f, 0), "SM_Trim_L_Container2", new Vector3(1.1f, 1.1f, 1.1f));
-            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(3.6f, 1.2f, -2f), Quaternion.Euler(0, 10f, 0), "SM_Box1", Vector3.one);
+            GameObject c2 = PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(3f, 0f, -2f), Quaternion.Euler(0, -30f, 0), "SM_Trim_L_Container2", new Vector3(1.1f, 1.1f, 1.1f));
+            float topY2 = c2 != null && c2.GetComponentInChildren<Renderer>() != null ? c2.GetComponentInChildren<Renderer>().bounds.max.y : 1.5f;
+            PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(3.2f, topY2, -2f), Quaternion.Euler(0, 10f, 0), "SM_Box1", Vector3.one);
 
             // 2. Sala Oeste (Generadores)
             PlaceMinimalScifiCrate(wallsGroup.transform, new Vector3(-45f, 0f, 5f), Quaternion.Euler(0, 45f, 0), "SM_Trim_L_Container1", new Vector3(1.2f, 1.2f, 1.2f));
@@ -499,6 +606,19 @@ namespace ChronosEscape.EditorTools
             instance.transform.position = pos;
             instance.transform.rotation = rot;
             instance.transform.localScale = scale;
+
+            // Auto-alineación a ras del suelo (Y = 0.5f) para assets terrestres
+            Renderer[] allRends = instance.GetComponentsInChildren<Renderer>();
+            if (allRends != null && allRends.Length > 0 && pos.y <= 0.55f)
+            {
+                Bounds b = allRends[0].bounds;
+                for (int i = 1; i < allRends.Length; i++)
+                {
+                    b.Encapsulate(allRends[i].bounds);
+                }
+                float deltaY = 0.5f - b.min.y;
+                instance.transform.position += new Vector3(0f, deltaY, 0f);
+            }
 
             if (addCollider && instance.GetComponentInChildren<Collider>() == null)
             {
@@ -636,6 +756,24 @@ namespace ChronosEscape.EditorTools
                 }
             }
 
+            // AJUSTE AUTOMÁTICO DE ALTURA (ANTI-HUNDIMIENTO):
+            // Los modelos de Minimal Scifi Pack tienen su pivote en el centro geométrico.
+            // Dado que el suelo de la estación está en Y = 0.5f, alineamos la base del modelo a Y = 0.5f (o pos.y si es apilado).
+            Renderer[] allRends = instance.GetComponentsInChildren<Renderer>();
+            if (allRends != null && allRends.Length > 0)
+            {
+                Bounds b = allRends[0].bounds;
+                for (int i = 1; i < allRends.Length; i++)
+                {
+                    b.Encapsulate(allRends[i].bounds);
+                }
+
+                float targetBottomY = (pos.y <= 0.55f) ? 0.5f : pos.y;
+                float currentBottomY = b.min.y;
+                float deltaY = targetBottomY - currentBottomY;
+                instance.transform.position += new Vector3(0f, deltaY, 0f);
+            }
+
             if (instance.GetComponentInChildren<Collider>() == null)
             {
                 Renderer rend = instance.GetComponentInChildren<Renderer>();
@@ -742,30 +880,30 @@ namespace ChronosEscape.EditorTools
         {
             GameObject dustObj = new GameObject("AtmosphericDust");
             dustObj.transform.SetParent(parent);
-            dustObj.transform.position = new Vector3(0, 4f, 0);
+            dustObj.transform.position = new Vector3(0, 3.5f, 0);
 
             ParticleSystem ps = dustObj.AddComponent<ParticleSystem>();
             var main = ps.main;
             main.duration = 5f;
             main.loop = true;
             main.startLifetime = 6f;
-            main.startSpeed = 0.2f;
-            main.startSize = 0.08f;
-            main.startColor = new Color(0.4f, 0.7f, 1f, 0.35f);
-            main.maxParticles = 150;
+            main.startSpeed = 0.12f;
+            main.startSize = 0.025f; // Micro-motas sutiles para eliminar los bloques cuadrados blancos
+            main.startColor = new Color(0.6f, 0.85f, 1f, 0.12f);
+            main.maxParticles = 80;
 
             var emission = ps.emission;
-            emission.rateOverTime = 20;
+            emission.rateOverTime = 12;
 
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(50, 8, 50);
+            shape.scale = new Vector3(50, 6, 50);
 
-            // Material para partículas ambientales (sin textura rosada)
+            // Material con textura circular suavizada (alpha radial) para eliminar los cuadrados sólidos
             ParticleSystemRenderer psr = dustObj.GetComponent<ParticleSystemRenderer>();
             if (psr != null)
             {
-                psr.sharedMaterial = GetOrCreateParticleMaterial("Mat_AtmosphericDust", new Color(0.4f, 0.7f, 1f, 0.35f));
+                psr.sharedMaterial = GetOrCreateSoftDustMaterial();
             }
         }
 
@@ -844,7 +982,7 @@ namespace ChronosEscape.EditorTools
             return coreGroup;
         }
 
-        private static GameObject CreatePortalMechanism(Vector3 pos, Material matLocked, Material matAccent, Material matWall)
+        private static GameObject CreatePortalMechanism(Vector3 pos, Material matLocked, Material matAccent, Material matWall, Material matPillar)
         {
             GameObject portalGroup = new GameObject("EscapePortal_Mechanism");
             portalGroup.transform.position = pos;
@@ -939,38 +1077,64 @@ namespace ChronosEscape.EditorTools
             tLight.range = 14f;
             tLight.intensity = 4.0f;
 
-            // ==================== BOTÓN DE PARED DE EVACUACIÓN ====================
-            // Montado en la pared derecha (x = 3.8m, z_local = 0.15m), perfectamente visible y plano al lado de la compuerta
+            // ==================== BOTÓN DE PARED DE EVACUACIÓN (SOBRE-RELIEVE MEJORADO) ====================
+            // El muro sur perimetral está en z_global = -53.5f, con grosor 1.0m su cara interior es z = -53.0f.
+            // Con doorRoot en z = -53.4f, la cara frontal del muro está exactamente en local z = +0.40f.
             GameObject wallButtonConsole = new GameObject("WallButtonConsole");
             wallButtonConsole.transform.SetParent(doorRoot.transform);
-            wallButtonConsole.transform.localPosition = new Vector3(3.8f, 1.4f, 0.15f);
+            wallButtonConsole.transform.localPosition = new Vector3(3.8f, 1.5f, 0.40f);
 
-            // Soporte en la pared
-            GameObject buttonBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            buttonBox.name = "ConsoleHousing";
-            buttonBox.transform.SetParent(wallButtonConsole.transform);
-            buttonBox.transform.localPosition = Vector3.zero;
-            buttonBox.transform.localScale = new Vector3(0.8f, 1.2f, 0.25f);
-            if (matAccent != null) buttonBox.GetComponent<Renderer>().material = matAccent;
+            // 1. Placa base de montaje mural (Metal oscuro)
+            GameObject consoleBacking = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            consoleBacking.name = "ConsoleBacking";
+            consoleBacking.transform.SetParent(wallButtonConsole.transform);
+            consoleBacking.transform.localPosition = new Vector3(0, 0, 0.04f);
+            consoleBacking.transform.localScale = new Vector3(1.0f, 1.5f, 0.08f);
+            if (matAccent != null) consoleBacking.GetComponent<Renderer>().material = matAccent;
 
-            // Botón físico redondo
+            // 2. Chasis industrial con reborde biselado
+            GameObject consoleChassis = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            consoleChassis.name = "ConsoleChassis";
+            consoleChassis.transform.SetParent(wallButtonConsole.transform);
+            consoleChassis.transform.localPosition = new Vector3(0, 0, 0.09f);
+            consoleChassis.transform.localScale = new Vector3(0.85f, 1.35f, 0.06f);
+            if (matPillar != null) consoleChassis.GetComponent<Renderer>().material = matPillar;
+
+            // 3. Mini pantalla / Visor de telemetría de evacuación superior
+            GameObject statusScreen = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            statusScreen.name = "StatusScreen";
+            statusScreen.transform.SetParent(wallButtonConsole.transform);
+            statusScreen.transform.localPosition = new Vector3(0, 0.45f, 0.125f);
+            statusScreen.transform.localScale = new Vector3(0.65f, 0.22f, 0.02f);
+            if (matAccent != null) statusScreen.GetComponent<Renderer>().material = matAccent;
+
+            // 4. Collarín / Bisel cilíndrico en sobre-relieve para alojar el pulsador
+            GameObject buttonBezel = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            buttonBezel.name = "ButtonBezel";
+            buttonBezel.transform.SetParent(wallButtonConsole.transform);
+            buttonBezel.transform.localPosition = new Vector3(0, -0.1f, 0.125f);
+            buttonBezel.transform.localScale = new Vector3(0.6f, 0.04f, 0.6f);
+            buttonBezel.transform.localRotation = Quaternion.Euler(90f, 0, 0);
+            if (matPillar != null) buttonBezel.GetComponent<Renderer>().material = matPillar;
+
+            // 5. Botón pulsador físico con relieve tridimensional prominente y color rojo sólido
             GameObject physicalButton = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             physicalButton.name = "EmergencyWallButton";
             physicalButton.transform.SetParent(wallButtonConsole.transform);
-            physicalButton.transform.localPosition = new Vector3(0, 0, 0.15f);
-            physicalButton.transform.localScale = new Vector3(0.5f, 0.1f, 0.5f);
+            physicalButton.transform.localPosition = new Vector3(0, -0.1f, 0.18f);
+            physicalButton.transform.localScale = new Vector3(0.44f, 0.08f, 0.44f);
             physicalButton.transform.localRotation = Quaternion.Euler(90f, 0, 0);
             if (matLocked != null) physicalButton.GetComponent<Renderer>().material = matLocked;
 
-            // Luz emisiva del botón de pared
+            // 6. Luz suave de baliza ambiental calibrada (sin sobreexponer ni lavar el color sólido)
             GameObject btnLightObj = new GameObject("WallButtonLight");
             btnLightObj.transform.SetParent(wallButtonConsole.transform);
-            btnLightObj.transform.localPosition = new Vector3(0, 0, 0.4f);
+            btnLightObj.transform.localPosition = new Vector3(0, -0.1f, 0.35f);
             Light btnLight = btnLightObj.AddComponent<Light>();
             btnLight.type = LightType.Point;
-            btnLight.color = new Color(0.9f, 0.15f, 0.15f); // Rojo inicial
-            btnLight.intensity = 2.5f;
-            btnLight.range = 5f;
+            btnLight.color = new Color(0.95f, 0.12f, 0.12f); // Rojo de emergencia sólido
+            btnLight.intensity = 0.85f;
+            btnLight.range = 3.5f;
 
             // ==================== TRIGGER DE DETECCIÓN Y VICTORIA ====================
             GameObject triggerObj = new GameObject("PortalTrigger");
@@ -999,41 +1163,61 @@ namespace ChronosEscape.EditorTools
 
             // Colisionador físico CharacterController para impedir que atraviese paredes
             CharacterController cc = enemyGroup.AddComponent<CharacterController>();
-            cc.height = 1.2f;
-            cc.radius = 0.5f;
+            cc.height = 1.3f;
+            cc.radius = 0.55f;
             cc.center = Vector3.zero;
             cc.stepOffset = 0.3f;
 
-            // Cuerpo del Dron (Esfera con cilindros o cubo flotante futurista)
-            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            body.name = "SentinelBody";
-            body.transform.SetParent(enemyGroup.transform);
-            body.transform.localPosition = Vector3.zero;
-            body.transform.localScale = new Vector3(1.1f, 1.1f, 1.1f);
-            if (matEnemy != null) body.GetComponent<Renderer>().material = matEnemy;
-            // Eliminar colisionador del hijo para evitar trabas físicas internas y con obstáculos
-            Collider bodyCol = body.GetComponent<Collider>();
-            if (bodyCol != null) GameObject.DestroyImmediate(bodyCol);
+            // Integración del Modelo 3D del Dron (Dron.obj con texturas PBR completas)
+            GameObject dronePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/drone/source/Dron.obj");
+            Renderer droneRenderer = null;
 
-            // Ojo / Lente frontal
-            GameObject eye = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            eye.name = "SentinelEye";
-            eye.transform.SetParent(body.transform);
-            eye.transform.localPosition = new Vector3(0, 0, 0.45f);
-            eye.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
-            // Eliminar colisionador del ojo
-            Collider eyeCol = eye.GetComponent<Collider>();
-            if (eyeCol != null) GameObject.DestroyImmediate(eyeCol);
+            if (dronePrefab != null)
+            {
+                GameObject droneVisual = (GameObject)PrefabUtility.InstantiatePrefab(dronePrefab);
+                droneVisual.name = "DroneMesh";
+                droneVisual.transform.SetParent(enemyGroup.transform);
+                droneVisual.transform.localScale = new Vector3(0.18f, 0.18f, 0.18f);
+                droneVisual.transform.localPosition = new Vector3(0, -0.74f, -0.09f);
+                droneVisual.transform.localRotation = Quaternion.identity;
 
-            // Luz de escaneo
+                // Quitar cualquier collider importado para evitar interferencias con el CharacterController
+                foreach (Collider col in droneVisual.GetComponentsInChildren<Collider>())
+                {
+                    GameObject.DestroyImmediate(col);
+                }
+
+                Material droneMat = GetOrCreateDroneMaterial();
+                droneRenderer = droneVisual.GetComponentInChildren<Renderer>();
+                if (droneRenderer != null && droneMat != null)
+                {
+                    droneRenderer.sharedMaterial = droneMat;
+                }
+            }
+            else
+            {
+                // Fallback procedural
+                GameObject body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                body.name = "SentinelBody";
+                body.transform.SetParent(enemyGroup.transform);
+                body.transform.localPosition = Vector3.zero;
+                body.transform.localScale = new Vector3(1.1f, 1.1f, 1.1f);
+                if (matEnemy != null) body.GetComponent<Renderer>().material = matEnemy;
+                Collider bodyCol = body.GetComponent<Collider>();
+                if (bodyCol != null) GameObject.DestroyImmediate(bodyCol);
+                droneRenderer = body.GetComponent<Renderer>();
+            }
+
+            // Luz frontal de escaneo del dron (ubicada en la cámara/sensor frontal)
             GameObject lightObj = new GameObject("EyeLight");
-            lightObj.transform.SetParent(body.transform);
-            lightObj.transform.localPosition = new Vector3(0, 0, 0.6f);
+            lightObj.transform.SetParent(enemyGroup.transform);
+            lightObj.transform.localPosition = new Vector3(0, 0f, 0.85f);
             Light eyeLight = lightObj.AddComponent<Light>();
             eyeLight.type = LightType.Spot;
-            eyeLight.spotAngle = 60f;
+            eyeLight.spotAngle = 65f;
             eyeLight.range = 14f;
             eyeLight.intensity = 3.5f;
+            eyeLight.color = new Color(0f, 0.8f, 1f); // Cian de patrulla
 
             // Waypoints
             Transform[] wpTransforms = new Transform[waypointPositions.Length];
@@ -1048,7 +1232,7 @@ namespace ChronosEscape.EditorTools
 
             EnemyAI ai = enemyGroup.AddComponent<EnemyAI>();
             ai.AsignarWaypoints(wpTransforms);
-            ai.ConfigurarReferencias(eyeLight, eye.GetComponent<Renderer>());
+            ai.ConfigurarReferencias(eyeLight, droneRenderer);
         }
 
         private static GameObject CreatePlayer(Vector3 startPos)

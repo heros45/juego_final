@@ -525,10 +525,13 @@ namespace ChronosEscape.Enemies
             if (luzOjo != null) luzOjo.color = color;
             if (renderModelo != null && renderModelo.material != null)
             {
-                renderModelo.material.color = color;
                 if (renderModelo.material.HasProperty("_EmissionColor"))
                 {
-                    renderModelo.material.SetColor("_EmissionColor", color * 1.5f);
+                    renderModelo.material.SetColor("_EmissionColor", color * 2.0f);
+                }
+                if (renderModelo.material.mainTexture == null)
+                {
+                    renderModelo.material.color = color;
                 }
             }
         }

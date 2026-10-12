@@ -1208,19 +1208,19 @@ namespace ChronosEscape.EditorTools
                 droneRenderer = body.GetComponent<Renderer>();
             }
 
-            // Núcleo Óptico / Lente Emisivo alojado en el círculo central del dron (X=0, Y=0.03, Z=0.74)
+            // Núcleo Óptico / Lente Emisivo alojado en el círculo frontal del dron (X=0, Y=-0.245, Z=0.58)
             GameObject eyeCore = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             eyeCore.name = "SentinelCentralEyeLens";
             eyeCore.transform.SetParent(enemyGroup.transform);
-            eyeCore.transform.localPosition = new Vector3(0f, 0.03f, 0.74f);
-            eyeCore.transform.localScale = new Vector3(0.40f, 0.025f, 0.40f);
+            eyeCore.transform.localPosition = new Vector3(0f, -0.245f, 0.58f);
+            eyeCore.transform.localScale = new Vector3(0.21f, 0.02f, 0.21f);
             eyeCore.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
             // Quitar collider para no interferir con el CharacterController
             Collider coreCol = eyeCore.GetComponent<Collider>();
             if (coreCol != null) GameObject.DestroyImmediate(coreCol);
 
-            Material matEyeLens = CreateMaterial("Assets/Materials/Mat_DroneEyeLens.mat", new Color(0f, 0.8f, 1f), 0.1f, 0.9f, new Color(0f, 0.8f, 1f) * 3.5f);
+            Material matEyeLens = CreateMaterial("Assets/Materials/Mat_DroneEyeLens.mat", new Color(0f, 0.8f, 1f), 0.1f, 0.9f, new Color(0f, 0.8f, 1f) * 4.0f);
             Renderer lensRenderer = eyeCore.GetComponent<Renderer>();
             if (lensRenderer != null && matEyeLens != null)
             {
@@ -1230,13 +1230,23 @@ namespace ChronosEscape.EditorTools
             // Luz frontal de escaneo del dron (nace exactamente del centro del círculo del dron)
             GameObject lightObj = new GameObject("EyeLight");
             lightObj.transform.SetParent(enemyGroup.transform);
-            lightObj.transform.localPosition = new Vector3(0f, 0.03f, 0.76f);
+            lightObj.transform.localPosition = new Vector3(0f, -0.245f, 0.60f);
             Light eyeLight = lightObj.AddComponent<Light>();
             eyeLight.type = LightType.Spot;
             eyeLight.spotAngle = 65f;
             eyeLight.range = 14f;
             eyeLight.intensity = 3.5f;
             eyeLight.color = new Color(0f, 0.8f, 1f); // Cian de patrulla
+
+            // Brillo puntual para iluminar el bisel y los pernos del círculo
+            GameObject glowObj = new GameObject("EyeLensGlow");
+            glowObj.transform.SetParent(lightObj.transform);
+            glowObj.transform.localPosition = Vector3.zero;
+            Light glowLight = glowObj.AddComponent<Light>();
+            glowLight.type = LightType.Point;
+            glowLight.range = 0.8f;
+            glowLight.intensity = 2.0f;
+            glowLight.color = new Color(0f, 0.8f, 1f);
 
             // Waypoints
             Transform[] wpTransforms = new Transform[waypointPositions.Length];

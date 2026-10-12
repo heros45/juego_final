@@ -524,7 +524,13 @@ namespace ChronosEscape.Enemies
 
         private void ActualizarColorVisual(Color color)
         {
-            if (luzOjo != null) luzOjo.color = color;
+            if (luzOjo != null)
+            {
+                foreach (Light l in luzOjo.GetComponentsInChildren<Light>())
+                {
+                    l.color = color;
+                }
+            }
 
             // Iluminar nítidamente el círculo / lente central del dron como fuente de emisión
             if (renderOjoLente != null && renderOjoLente.material != null)
@@ -533,7 +539,7 @@ namespace ChronosEscape.Enemies
                 if (renderOjoLente.material.HasProperty("_EmissionColor"))
                 {
                     renderOjoLente.material.EnableKeyword("_EMISSION");
-                    renderOjoLente.material.SetColor("_EmissionColor", color * 3.5f);
+                    renderOjoLente.material.SetColor("_EmissionColor", color * 4.0f);
                 }
             }
 
